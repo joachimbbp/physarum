@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 import random
+import imageio
 
 
 class Particle:
@@ -11,18 +12,20 @@ class Particle:
         self.spread = 1.570  # approx 90 degrees in radians
         self.length = 2  # the sensor and move distance
 
-    def search(self, angle: float, canvas) -> float:
-        # returns x,y, and if there is something there
-        x = self.dist * math.sin(angle) + self.pos[0]
-        y = self.dist * math.cos(angle) + self.pos[1]
-        return canvas[x][y]
+    def search(self, angle: float, canvas: np.ndarray) -> float:
+        x = self.length * math.sin(angle) + self.pos[0]
+        y = self.length * math.cos(angle) + self.pos[1]
+        # TODO: Flip heading. For now we'll just clamp it
+        # LLM: clamping logic
+        x = max(0, min(canvas.shape[0] - 1, int(x)))
+        y = max(0, min(canvas.shape[1] - 1, int(y)))
+        return canvas[int(x)][int(y)]
 
     def sense_and_rotate(self, canvas) -> tuple[int, int, float]:
-        # sense the four posibilities on the grid
         turns = [self.heading - self.spread, self.heading + self.spread]
-        left = self.search(self, turns[0], canvas)
-        mid = self.search(self, self.heading, canvas)
-        right = self.search(self, turns[1], canvas)
+        left = self.search(turns[0], canvas)
+        mid = self.search(self.heading, canvas)
+        right = self.search(turns[1], canvas)
         direction = random.choice(turns)  # new heading
 
         if ((left >= 0) and (mid == 0) and (right >= 0)):
@@ -33,18 +36,22 @@ class Particle:
             direction = turns[0]
         elif ((left == 0) and (mid >= 0) and (right >= 0)):
             direction = turns[1]
-        return (self.length * math.cos(direction) + self.pos[0],
-                self.length + math.sin(direction) + self.pos[1],
+        return (self.length * math.sin(direction) + self.pos[0],
+                self.length + math.cos(direction) + self.pos[1],
                 direction)
 
-    def draw(self, canvas):
-        canvas[self.pos[0]][self.pos[1]] = 255
+    def draw(self, canvas: np.ndarray):
+        # WARN: clamping doesn't work above
+        if (self.pos[0] >= canvas.shape[0]) or (self.pos[1] >= canvas.shape[1]):
+            return
+        canvas[int(self.pos[0])][int(self.pos[1])] = 255
+        # TODO: probably better as a 0-1 float tbh
 
 
-def draw_canvas(particles, canvas, frame_num):
+def draw_canvas(particles, canvas, frame_num, name="physarum"):
     for i, p in enumerate(particles):
         p.draw(canvas)
-    plt.imsave(f'c_{frame_num}.png', canvas)
+    plt.imsave(f'./output/{name}_{frame_num}.png', canvas)
 
 
 canvas = np.zeros((100, 100))
@@ -56,8 +63,23 @@ for i in range(100):
     particles.append(Particle((random.randrange(1, 100),
                                random.randrange(1, 100),
                                random.uniform(0, full_circ_rads))))
-draw_canvas(particles, canvas, 1)
+
+frames = []
 # time steps
-# for i in range(100):
-#     for p in particles:
-#         #        particles[p] = Particle.__init__(particles[p].sense
+for i in range(24):
+    new_particles = []
+    for p in particles:
+        new_vec = p.sense_and_rotate(canvas)
+        new_particles.append(Particle(new_vec))
+    particles = new_particles
+    for p in particles:
+        p.draw(canvas)
+    frames.append(canvas.copy())
+    print(f'frames {i} rendered')
+imageio.mimsave('./output/physarum.gif', frames, fps=24)
+# draw_canvas(particles, canvas, i)
+# print(f'frame {i} drawn')
+#
+# ffmpeg -framerate 10 -i physarum_%d.png output.gif
+
+# create
