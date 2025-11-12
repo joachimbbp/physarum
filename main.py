@@ -3,6 +3,8 @@ import numpy as np
 import math
 import random
 import imageio
+from datetime import datetime
+import re
 
 
 class Particle:
@@ -65,8 +67,9 @@ for i in range(100):
                                random.uniform(0, full_circ_rads))))
 
 frames = []
+fps = 24
 # time steps
-for i in range(24):
+for i in range(fps * 10):
     new_particles = []
     for p in particles:
         new_vec = p.sense_and_rotate(canvas)
@@ -76,7 +79,9 @@ for i in range(24):
         p.draw(canvas)
     frames.append(canvas.copy())
     print(f'frames {i} rendered')
-imageio.mimsave('./output/physarum.gif', frames, fps=24)
+
+now = re.sub(r'[:-]', '', datetime.now().isoformat(timespec='seconds'))
+imageio.mimsave(f'./output/physarum_{now}.gif', frames, fps=fps)
 # draw_canvas(particles, canvas, i)
 # print(f'frame {i} drawn')
 #
