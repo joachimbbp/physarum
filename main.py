@@ -93,4 +93,4 @@ for i in range(int(fps * rt)):
 
 now = re.sub(r'[:-]', '', datetime.now().isoformat(timespec='seconds'))
 imageio.mimsave(f'./output/physarum_{now}.gif',
-                frames, fps=fps, subtractrectangles=True)
+                frames, fps=fps, subtractrectangles=True, loop=0)
