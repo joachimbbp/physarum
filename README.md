@@ -4,9 +4,10 @@
 
 ![slime](readme_media/physarum_20251113T182154.gif)
 
-implementing [the slime mold outlined here](https://bleuje.com/physarum-explanation/)
+Implementing [the slime mold outlined here](https://bleuje.com/physarum-explanation/)
 
-eventually in arbitrarily large dimensions
-n-dimensional slime
-higher dimensional mold
-all this to come
+- eventually in arbitrarily large dimensions
+- n-dimensional slime
+- higher dimensional mold
+- all this to come
+- vdb interop
