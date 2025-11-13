@@ -14,16 +14,19 @@ class Particle:
         self.spread = 0.785398  # approx 45 degrees in radians
         self.len = 1
         self.age = 0
-        self.health = 5
+        self.max_health = 5  # hard coded for now
+        self.health = self.max_health
         # NOTE: All particles will just have a single pixel grow/sense length
 
     def decay(self, decay='linear', decay_factor=1):
         self.age += 1
+        # print(self.age, "is the age")
         match decay:
             case 'linear':
                 self.health = self.health - (self.age * decay_factor)
             case 'exponential':  # WARN: untested
                 self.health = int(self.health / (self.age * decay_factor))
+        # print("health: ", self.health)
 
     def search(self, angle: float, canvas: np.ndarray) -> float:
         x = self.len * math.sin(angle) + self.pos[0]
@@ -65,31 +68,36 @@ class Particle:
             # Kills particles at edge of frame
             # HACK: it feels weird that this is in draw.
 
-        canvas[int(self.pos[0])][int(self.pos[1])] = 255
-        # TODO: probably better as a 0-1 float tbh
-        # TODO: pixel intensity based on health
+        max_val = 255  # TODO: will be a 0-1 foloat for vdbs eventually
+        draw_val = int(max_val * (self.health / self.max_health))
+        # print("draw val: ", draw_val)
+        canvas[int(self.pos[0])][int(self.pos[1])] = draw_val
 
 
-canvas = np.zeros((100, 100))
+sx = 200
+sy = 200
+fps = 24
+rt = 0.5  # runtime in seconds
+canvas = np.zeros((sy, sx))  # np uses h*w
 particles = []
 full_circ_rads = 2 * np.pi
 # spawn
-for i in range(100):
-    particles.append(Particle(pos=(r.randrange(1, 100), r.randrange(1, 100)),
+for i in range(800):
+    particles.append(Particle(pos=(r.randrange(1, sy), r.randrange(1, sx)),
                               heading=r.uniform(0, full_circ_rads)))
 
 frames = []
-fps = 24
 # time steps
-for i in range(fps * 10):
+for i in range(int(fps * rt)):
     new_particles = []
     for p in particles:
         if p.health > 0:
+            p.decay()
+            new_particles.append(p)
             p, h = p.sense_and_rotate(canvas)  # naming could be better here
             new_particles.append(Particle(p, h))
     particles = new_particles
     for p in particles:
-        p.decay()
         p.draw(canvas)
     frames.append(canvas.copy())
     print(f'frames {i} rendered')
