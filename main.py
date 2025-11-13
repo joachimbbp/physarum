@@ -40,16 +40,22 @@ class Particle:
         right = self.search(turns[1], canvas)
         direction = r.choice(turns)  # new heading
 
-        if ((left >= 0) and (mid == 0) and (right >= 0)):
+        # LLM: fix found this out:
+        # that little < logic in jenson's sketch *did* mean something
+        # turns out this all needed to be relational, not just against zeros!
+        if (mid > left) and (mid > right):
             direction = self.head
-        # if ((left == 0.0) and (mid >= 0.0) and (right == 0.0)):
-        #     direction = random.choice(turns)
-        elif ((left >= 0) and (mid >= 0) and (right == 0)):
-            direction = turns[0]
-        elif ((left == 0) and (mid >= 0) and (right >= 0)):
-            direction = turns[1]
+
+        elif left > right:
+            direction = self.head - self.spread
+        elif right > left:
+            direction = self.head + self.spread
+        else:
+            direction = r.choice(
+                [self.head - self.spread, self.head + self.spread])
+
         new_pos = (self.len * math.sin(direction) + self.pos[0],
-                   self.len + math.cos(direction) + self.pos[1])
+                   self.len * math.cos(direction) + self.pos[1])
         return new_pos, direction
 
     def draw(self, canvas: np.ndarray):
@@ -58,12 +64,13 @@ class Particle:
             return
             # Kills particles at edge of frame
             # HACK: it feels weird that this is in draw.
+
         canvas[int(self.pos[0])][int(self.pos[1])] = 255
         # TODO: probably better as a 0-1 float tbh
+        # TODO: pixel intensity based on health
 
 
 canvas = np.zeros((100, 100))
-# canvas = np.random.randint(0, 256, (100, 100, 3), dtype=np.uint8)
 particles = []
 full_circ_rads = 2 * np.pi
 # spawn
@@ -89,9 +96,3 @@ for i in range(fps * 10):
 
 now = re.sub(r'[:-]', '', datetime.now().isoformat(timespec='seconds'))
 imageio.mimsave(f'./output/physarum_{now}.gif', frames, fps=fps)
-# draw_canvas(particles, canvas, i)
-# print(f'frame {i} drawn')
-#
-# ffmpeg -framerate 10 -i physarum_%d.png output.gif
-
-# create
