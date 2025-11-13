@@ -62,17 +62,17 @@ class Particle:
 
 
 sx = 400
-sy = 300
+sy = 400
 fps = 24
 rt = 10  # runtime in seconds
 
-decay = 0.9
+decay = 0.95
 
 canvas = np.zeros((sy, sx))  # np uses h*w
 particles = []
 full_circ_rads = 2 * np.pi
 # spawn
-for i in range(800):
+for i in range(1600):
     particles.append(Particle(pos=(r.randrange(1, sy), r.randrange(1, sx)),
                               heading=r.uniform(0, full_circ_rads)))
 
@@ -92,4 +92,5 @@ for i in range(int(fps * rt)):
     print(f'frames {i} rendered')
 
 now = re.sub(r'[:-]', '', datetime.now().isoformat(timespec='seconds'))
-imageio.mimsave(f'./output/physarum_{now}.gif', frames, fps=fps)
+imageio.mimsave(f'./output/physarum_{now}.gif',
+                frames, fps=fps, subtractrectangles=True)
