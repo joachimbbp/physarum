@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import numpy as np
 import math
 import random as r
@@ -30,14 +29,10 @@ class Particle:
         mid = self.search(self.head, canvas)
         right = self.search(turns[1], canvas)
         direction = r.choice(turns)  # new heading
-
-        # LLM: fix found this out:
-        # that little < logic in jenson's sketch *did* mean something
-        # turns out this all needed to be relational, not just against zeros!
+        # FIX: redundant with turns to calc these again?
         if (mid > left) and (mid > right):
             direction = self.head
-
-        elif left > right:
+        elif left < right:
             direction = self.head - self.spread
         elif right > left:
             direction = self.head + self.spread
@@ -71,11 +66,31 @@ decay = 0.95
 canvas = np.zeros((sy, sx))  # np uses h*w
 particles = []
 full_circ_rads = 2 * np.pi
-# spawn
-for i in range(1600):
-    particles.append(Particle(pos=(r.randrange(1, sy), r.randrange(1, sx)),
-                              heading=r.uniform(0, full_circ_rads)))
 
+
+def spawn_random():
+    for i in range(1600):
+        particles.append(Particle(pos=(r.randrange(1, sy), r.randrange(1, sx)),
+                                  heading=r.uniform(0, full_circ_rads)))
+
+
+def spawn_rect():
+    xpad_l = sx / 4
+    xpad_h = xpad_l + (sx/2)
+    ypad_l = sy / 4
+    ypad_h = ypad_l + (sy/2)
+    print(f'xpad low: {xpad_l} xpad high: {xpad_h}')
+    print(f'ypad low: {ypad_l} ypad high: {ypad_h}')
+    for x in range(sx):
+        if (x > xpad_l) and (x < xpad_h):
+            for y in range(sy):
+                if (y > ypad_l) and (y < ypad_h):
+                    particles.append(
+                        Particle(pos=(x, y),
+                                 heading=r.uniform(0, full_circ_rads)))
+
+
+spawn_rect()
 frames = []
 # time steps
 for i in range(int(fps * rt)):
@@ -89,8 +104,9 @@ for i in range(int(fps * rt)):
     for p in particles:
         p.draw(canvas)
     frames.append(canvas.copy())
-    print(f'frames {i} rendered')
+#    print(f'frames {i} rendered')
 
 now = re.sub(r'[:-]', '', datetime.now().isoformat(timespec='seconds'))
 imageio.mimsave(f'./output/physarum_{now}.gif',
                 frames, fps=fps, subtractrectangles=True, loop=0)
+print('done')
