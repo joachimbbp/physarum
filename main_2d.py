@@ -30,17 +30,20 @@ class Particle:
         right = self.search(turns[1], canvas)
         direction = r.choice(turns)  # new heading
         # FIX: redundant with turns to calc these again?
+        # Q: Is there a pattern here?
+        # if neither left or right are bigger than mid
+        # otherwise just go in the direction that is bigger!
         if (mid > left) and (mid > right):
             direction = self.head
-        elif left < right:
+        elif left > right:  # right
             direction = self.head - self.spread
-        elif right > left:
+        elif right > left:  # right
             direction = self.head + self.spread
         else:
             direction = r.choice(
                 [self.head - self.spread, self.head + self.spread])
 
-        new_pos = (self.len * math.sin(direction) + self.pos[0],
+        new_pos = (self.len * math.sin(direction) + self.pos[0],  # FIX: redundant
                    self.len * math.cos(direction) + self.pos[1])
         return new_pos, direction
 
@@ -52,14 +55,13 @@ class Particle:
             # HACK: it feels weird that this is in draw.
 
         draw_val = 255  # TODO: will be a 0-1 foloat for vdbs eventually
-        # print("draw val: ", draw_val)
         canvas[int(self.pos[0])][int(self.pos[1])] = draw_val
 
 
 sx = 400
 sy = 400
 fps = 24
-rt = 10  # runtime in seconds
+rt = 6  # runtime in seconds
 
 decay = 0.95
 
@@ -104,7 +106,7 @@ for i in range(int(fps * rt)):
     for p in particles:
         p.draw(canvas)
     frames.append(canvas.copy())
-#    print(f'frames {i} rendered')
+    print(f'frames {i} rendered')
 
 now = re.sub(r'[:-]', '', datetime.now().isoformat(timespec='seconds'))
 imageio.mimsave(f'./output/physarum_{now}.gif',
