@@ -4,6 +4,7 @@ import random as r
 import imageio
 from datetime import datetime
 import re
+from enum import Enum
 
 
 def sphere_to_cart(radial, azimuth, polar) -> tuple[float, float, float]:
@@ -19,13 +20,26 @@ def scale_vec(vec: tuple[float, float], scalar: float) -> tuple[float, float]:
     return (vec[0] * scalar, vec[1] * scalar)
 
 
-def add_vecs(vecs: [tuple[float, float]]) -> tuple[float, float]:
+def weighted_dir(vecs: [tuple[float, float]]) -> tuple[float, float]:
     # again, def a numpy implementation and maybe it's better
     res = (0.0, 0.0)
     for v in vecs:
         res[0] += v[0]
         res[1] += v[1]
-    return res
+    # I've been using [top, bottom],
+    # arctan2 uses [bottom, top]
+    return np.arctan2(res[1], res[0])
+
+
+class Qd(Enum):  # Quadrants
+    # Each quadrant starting value in radians
+    # as we rotate counter-clockwise
+    # tuple is input as (x, y) or
+    # (bottom vector num, topvector num)
+    D = np.arctan2(-1, -1)  # DOWN
+    R = np.arctan2(-1, 1)  # RIGHT
+    U = np.arctan2(1, 1)  # UP
+    L = np.arctan2(1, -1)  # LEFT
 
 
 class Particle:
@@ -79,32 +93,41 @@ class Particle:
         mv = (self.head[0], self.head[1])  # mid vector
         ms = self.search(mv, canvas)  # mid scalar
         m_scaled = scale_vec(mv, ms)
-        scaled_vecs.append(d_scaled)
+        scaled_vecs.append(m_scaled)
 
-        wdir = add_vecs(scaled_vecs)  # weighted dir
-        self.pos = (int(weigh),  # WIP:
-                    # continue like 2D
+        wd = weighted_dir(scaled_vecs)  # weighted dir
+
+        if (wd >= Qd.D.value) and (wd < Qd.R.value):
+            self.pos = (-1, 0)
+        elif (wd >= Qd.R.value) and (wd < Qd.U.value):
+            self.pos = (1, 0)
+        elif (wd >= Qd.U.value) and (wd < Qd.L.value):
+            self.pos = (0, 1)
+        elif (wd >= Qd.L.value) and (wd < Qd.D.value):
+            self.pos = (-1, 0)
+        else:
+            raise ValueError(f'undefined self.pos error. wd = {wd}')
 
         if (self.pos[0] >= canvas.shape[0]) or (self.pos[1] >= canvas.shape[1]) or (self.pos[0] < 0) or (self.pos[1] < 0):
-            self.alive=False
+            self.alive = False
             return
             # Kills particles at edge of frame
             # HACK: it feels weird that this is in draw.
 
-        draw_val=255  # TODO: will be a 0-1 foloat for vdbs eventually
-        canvas[int(self.pos[0])][int(self.pos[1])]=draw_val
+        draw_val = 255  # TODO: will be a 0-1 foloat for vdbs eventually
+        canvas[int(self.pos[0])][int(self.pos[1])] = draw_val
 
 
-sx=400
-sy=400
-fps=24
-rt=6  # runtime in seconds
+sx = 400
+sy = 400
+fps = 24
+rt = 6  # runtime in seconds
 
-decay=0.95
+decay = 0.95
 
-canvas=np.zeros((sy, sx))  # np uses h*w
-particles=[]
-full_circ_rads=2 * np.pi
+canvas = np.zeros((sy, sx))  # np uses h*w
+particles = []
+full_circ_rads = 2 * np.pi
 
 
 def spawn_random():
@@ -114,10 +137,10 @@ def spawn_random():
 
 
 def spawn_rect():
-    xpad_l=sx / 4
-    xpad_h=xpad_l + (sx/2)
-    ypad_l=sy / 4
-    ypad_h=ypad_l + (sy/2)
+    xpad_l = sx / 4
+    xpad_h = xpad_l + (sx/2)
+    ypad_l = sy / 4
+    ypad_h = ypad_l + (sy/2)
     print(f'xpad low: {xpad_l} xpad high: {xpad_h}')
     print(f'ypad low: {ypad_l} ypad high: {ypad_h}')
     for x in range(sx):
@@ -130,22 +153,22 @@ def spawn_rect():
 
 
 spawn_rect()
-frames=[]
+frames = []
 # time steps
 for i in range(int(fps * rt)):
-    new_particles=[]
+    new_particles = []
     for p in particles:
         if p.alive:
-            p, h=p.sense_and_rotate(canvas)  # naming could be better here
+            p, h = p.sense_and_rotate(canvas)  # naming could be better here
             new_particles.append(Particle(p, h))
-    particles=new_particles
+    particles = new_particles
     canvas *= decay
     for p in particles:
         p.draw(canvas)
     frames.append(canvas.copy())
     print(f'frames {i} rendered')
 
-now=re.sub(r'[:-]', '', datetime.now().isoformat(timespec='seconds'))
+now = re.sub(r'[:-]', '', datetime.now().isoformat(timespec='seconds'))
 imageio.mimsave(f'./output/physarum_{now}.gif',
                 frames, fps=fps, subtractrectangles=True, loop=0)
 print('done')
