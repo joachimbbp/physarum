@@ -48,11 +48,14 @@ class Particle:
         return new_pos, direction
 
     def draw(self, canvas: np.ndarray):
-        if (self.pos[0] >= canvas.shape[0]) or (self.pos[1] >= canvas.shape[1]) or (self.pos[0] < 0) or (self.pos[1] < 0):
-            self.alive = False
-            return
-            # Kills particles at edge of frame
-            # HACK: it feels weird that this is in draw.
+        if (self.pos[0] >= canvas.shape[0]):
+            if (self.pos[1] >= canvas.shape[1]):
+                if (self.pos[0] < 0):
+                    if (self.pos[1] < 0):
+                        self.alive = False
+                        return
+                        # Kills particles at edge of frame
+                        # HACK: it feels weird that this is in draw.
 
         draw_val = 255  # TODO: will be a 0-1 foloat for vdbs eventually
         canvas[int(self.pos[0])][int(self.pos[1])] = draw_val

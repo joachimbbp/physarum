@@ -97,62 +97,55 @@ class Particle:
 
         wd = weighted_dir(scaled_vecs)  # weighted dir
 
+        new_pos = (-1, 0)
         if (wd >= Qd.D.value) and (wd < Qd.R.value):
-            self.pos = (-1, 0)
+            new_pos = (-1, 0)
         elif (wd >= Qd.R.value) and (wd < Qd.U.value):
-            self.pos = (1, 0)
+            new_pos = (1, 0)
         elif (wd >= Qd.U.value) and (wd < Qd.L.value):
-            self.pos = (0, 1)
+            new_pos = (0, 1)
         elif (wd >= Qd.L.value) and (wd < Qd.D.value):
-            self.pos = (-1, 0)
+            new_pos = (-1, 0)
         else:
-            raise ValueError(f'undefined self.pos error. wd = {wd}')
+            raise ValueError(f'undefined new_pos error. wd = {wd}')
+        new_heading = np.arctan2(new_pos[1], new_pos[0])
+        return new_pos, new_heading
 
-        if (self.pos[0] >= canvas.shape[0]) or (self.pos[1] >= canvas.shape[1]) or (self.pos[0] < 0) or (self.pos[1] < 0):
-            self.alive = False
-            return
+    def draw(self, canvas: np.ndarray):
+        if (self.pos[0] >= canvas.shape[0]):
+            if (self.pos[1] >= canvas.shape[1]):
+                if (self.pos[2] >= canvas.shape[2]):
+                    if (self.pos[0] < 0) or (self.pos[1] < 0):
+                        self.alive = False
+                        return
             # Kills particles at edge of frame
             # HACK: it feels weird that this is in draw.
 
-        draw_val = 255  # TODO: will be a 0-1 foloat for vdbs eventually
-        canvas[int(self.pos[0])][int(self.pos[1])] = draw_val
+        draw_val = 1.0
+        canvas[int(self.pos[0])][int(self.pos[1])[int(self.pos[2])]] = draw_val
 
 
-sx = 400
-sy = 400
+sx = 100
+sy = 100
+sz = 100
 fps = 24
 rt = 6  # runtime in seconds
 
 decay = 0.95
 
-canvas = np.zeros((sy, sx))  # np uses h*w
+canvas = np.zeros((sy, sx, sz), dtype=np.float64)  # np uses h*w
 particles = []
+
 full_circ_rads = 2 * np.pi
 
 
 def spawn_random():
     for i in range(1600):
-        particles.append(Particle(pos=(r.randrange(1, sy), r.randrange(1, sx)),
+        particles.append(Particle(pos=(r.randrange(1, sy), r.randrange(1, sx), r.randrange(1, sx)),
                                   heading=r.uniform(0, full_circ_rads)))
 
 
-def spawn_rect():
-    xpad_l = sx / 4
-    xpad_h = xpad_l + (sx/2)
-    ypad_l = sy / 4
-    ypad_h = ypad_l + (sy/2)
-    print(f'xpad low: {xpad_l} xpad high: {xpad_h}')
-    print(f'ypad low: {ypad_l} ypad high: {ypad_h}')
-    for x in range(sx):
-        if (x > xpad_l) and (x < xpad_h):
-            for y in range(sy):
-                if (y > ypad_l) and (y < ypad_h):
-                    particles.append(
-                        Particle(pos=(x, y),
-                                 heading=r.uniform(0, full_circ_rads)))
-
-
-spawn_rect()
+spawn_random()
 frames = []
 # time steps
 for i in range(int(fps * rt)):
@@ -168,7 +161,4 @@ for i in range(int(fps * rt)):
     frames.append(canvas.copy())
     print(f'frames {i} rendered')
 
-now = re.sub(r'[:-]', '', datetime.now().isoformat(timespec='seconds'))
-imageio.mimsave(f'./output/physarum_{now}.gif',
-                frames, fps=fps, subtractrectangles=True, loop=0)
 print('done')
