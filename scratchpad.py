@@ -30,16 +30,26 @@ class Quadrants:
         return r, azimuth, polar
 
     def __init__(self):
+        # each quadrant represents the starting radian value
+        # running counter clockwise around the circular end
+        # of the conicnal search radius
         self.d = self.build_coords(-1, -1, 1)  # DOWN
         self.r = self.build_coords(-1, 1, 1)  # RIGHT
         self.u = self.build_coords(1, 1, 1)  # UP
         self.l = self.build_coords(1, -1, 1)  # LEFT
 
+    def assign(self, wd: tuple[float, float, float]):
+        # wd: Weighted Direction Vector
+        wd_coords = self.build_coords(wd[0], wd[1], wd[2])
+
+    def dc(self, c):  # display coords
+        return f"radial: {c[0]}, azimuth: {c[1]}, polar: {c[2]}"
+
     def debug_print(self):
-        print(f"quadrant d: {self.d} of type {type(self.d)}")
-        print(f"quadrant r: {self.r} of type {type(self.r)}")
-        print(f"quadrant u: {self.u} of type {type(self.u)}")
-        print(f"quadrant l: {self.l} of type {type(self.l)}")
+        print(f"quadrant d: \n      {self.dc(self.d)}\n")
+        print(f"quadrant r: \n      {self.dc(self.r)}\n")
+        print(f"quadrant u: \n      {self.dc(self.u)}\n")
+        print(f"quadrant l: \n      {self.dc(self.l)}\n")
 
 
 q = Quadrants()

@@ -44,7 +44,6 @@ class Quadrants:
         self.l = np.arctan([1, -1, 1])  # LEFT
 
     def assign(wd: tuple[float, float, float]):
-        if (wd
         pass
 
 
@@ -115,6 +114,7 @@ class Particle:
 
         new_pos = (-1, 0)
         qd = Quadrants()
+        # FIX: Assign quadrant here!
         print(f"weighted direction: {wd} of type {type(wd)}")
         if (wd >= qd.d) and (wd < qd.r):
             new_pos = (-1, 0)
