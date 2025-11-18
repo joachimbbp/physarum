@@ -1,11 +1,15 @@
 import numpy as np
 import math as m
 import random as r
-import imageio
 from datetime import datetime
-import re
 from enum import Enum
 
+import sys
+nv_path = '/Users/joachimpfefferkorn/repos/neurovolume/neurovolume/src'
+if nv_path not in sys.path: # LLM:
+    sys.path.insert(0, nv_path)
+# VERSION: https://github.com/joachimbbp/neurovolume/tree/59a576bafa2dd9035a08a6c2be40c206c9d53d55
+import neurovolume as nv
 
 def sphere_to_cart(radial, azimuth, polar) -> tuple[float, float, float]:
     # SOURCE: https://mathworld.wolfram.com/SphericalCoordinates.html
@@ -69,6 +73,10 @@ class Particle:
         towards = self.head - self.spread  # right and up
         away = self.head + self.spread  # left and down
 
+        # WIP: Warn: this is probably just searching
+        # to the direct edges, not forward in any direction
+        # I completely overlooked this insanity!
+        
         scaled_vecs = []
         lv = (away, 0)  # left vector
         ls = self.search(lv, canvas)  # left scalar
@@ -138,16 +146,20 @@ particles = []
 
 full_circ_rads = 2 * np.pi
 
-
+print("random spawning")
 def spawn_random():
-    for i in range(1600):
+    for i in range(500):
         particles.append(Particle(pos=(r.randrange(1, sy), r.randrange(1, sx), r.randrange(1, sx)),
                                   heading=r.uniform(0, full_circ_rads)))
 
+print("spawned")
 
 spawn_random()
+print(len(particles))
+for p in particles:
+    print(type(p))
 frames = []
-# time steps
+# # time steps
 for i in range(int(fps * rt)):
     new_particles = []
     for p in particles:
@@ -161,4 +173,14 @@ for i in range(int(fps * rt)):
     frames.append(canvas.copy())
     print(f'frames {i} rendered')
 
-print('done')
+# affine_identity = np.array([ # LLM:
+#     [1.0, 0.0, 0.0, 0.0],  # x-axis
+#     [0.0, 1.0, 0.0, 0.0],  # y-axis
+#     [0.0, 0.0, 1.0, 0.0],  # z-axis
+#     [0.0, 0.0, 0.0, 1.0],  # homogeneous coord
+# ], dtype=np.float64)
+
+# for i, f in enumerate(frames):
+#     o = f'./output/physarum_{i}.vdb'
+#     nv.ndarray_to_VDB(f, o, affine_identity)
+# print('done')
