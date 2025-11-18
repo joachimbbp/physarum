@@ -29,6 +29,14 @@ def weighted_dir(vecs: [tuple[float, float]]) -> tuple[float, float, float]:
     return np.arctan([r2, r1, r0])
 
 
+def normalize_vec(vec: tuple[float, float, float]) -> tuple[float, float, float]:
+    # LLM: this whole function
+    length = np.sqrt(vec[0] ** 2 + vec[1] ** 2 + vec[2] ** 2)
+    if length == 0:
+        return (0, 0, 1)  # default direction
+    return (vec[0] / length, vec[1] / length, vec[2] / length)
+
+
 # -
 class Quadrants:
     # SOURCE: for conversions:
@@ -87,7 +95,9 @@ class Quadrants:
 
 
 class Particle:
-    def __init__(self, pos: tuple[int, int, int], heading: tuple[float, float, float]):
+    def __init__(
+        self, pos: tuple[float, float, float], heading: tuple[float, float, float]
+    ):
         self.pos = pos
         self.head = heading
         self.spread = 0.785398  # approx 45 degrees in radians
@@ -103,57 +113,80 @@ class Particle:
         z = max(0, min(canvas.shape[2] - 1, int(pos[2])))
         return canvas[int(x)][int(y)][int(z)]
 
+    def rotate_vector(self, vec, axis, angle):
+        # LLM: this whole function
+        """Rotate a vector around an axis by angle (Rodrigues' rotation)"""
+        axis = normalize_vec(axis)
+        cos_a = np.cos(angle)
+        sin_a = np.sin(angle)
+
+        # Rodrigues' rotation formula
+        rotated = (
+            vec[0] * cos_a
+            + (axis[1] * vec[2] - axis[2] * vec[1]) * sin_a
+            + axis[0]
+            * (axis[0] * vec[0] + axis[1] * vec[1] + axis[2] * vec[2])
+            * (1 - cos_a),
+            vec[1] * cos_a
+            + (axis[2] * vec[0] - axis[0] * vec[2]) * sin_a
+            + axis[1]
+            * (axis[0] * vec[0] + axis[1] * vec[1] + axis[2] * vec[2])
+            * (1 - cos_a),
+            vec[2] * cos_a
+            + (axis[0] * vec[1] - axis[1] * vec[0]) * sin_a
+            + axis[2]
+            * (axis[0] * vec[0] + axis[1] * vec[1] + axis[2] * vec[2])
+            * (1 - cos_a),
+        )
+        return normalize_vec(rotated)
+
     def sense_and_rotate(self, canvas):
-        scaled_vecs = []
-        # z will always be the heading
+        # LLM: Rewrite of this function
 
-        # WARN: full on spaghetti at walls here
-        lv = (  # left vector
-            self.head[0] - self.spread,
-            self.head[1],
-            self.head[2],
+        # Create perpendicular vectors for sensing
+        # Simple approach: perturb heading in different directions
+
+        # Forward sense position
+        fwd_pos = (
+            self.pos[0] + self.head[0] * self.len,
+            self.pos[1] + self.head[1] * self.len,
+            self.pos[2] + self.head[2] * self.len,
         )
-        ls = self.search(lv, canvas)  # left scalar
-        l_scaled = scale_vec(lv, ls)
-        scaled_vecs.append(l_scaled)
+        fwd_val = self.search(fwd_pos, canvas)
 
-        rv = (  # right vector
-            self.head[0] + self.spread,
-            self.head[1],
-            self.head[2],
+        # Left sense (rotate heading left around up axis)
+        up_axis = (0, 0, 1)
+        left_dir = self.rotate_vector(self.head, up_axis, self.spread)
+        left_pos = (
+            self.pos[0] + left_dir[0] * self.len,
+            self.pos[1] + left_dir[1] * self.len,
+            self.pos[2] + left_dir[2] * self.len,
         )
-        rs = self.search(rv, canvas)  # right scalar
-        r_scaled = scale_vec(rv, rs)
-        scaled_vecs.append(r_scaled)
+        left_val = self.search(left_pos, canvas)
 
-        uv = (  # up vector
-            self.head[0],
-            self.head[1] + self.spread,
-            self.head[2],
+        # Right sense
+        right_dir = self.rotate_vector(self.head, up_axis, -self.spread)
+        right_pos = (
+            self.pos[0] + right_dir[0] * self.len,
+            self.pos[1] + right_dir[1] * self.len,
+            self.pos[2] + right_dir[2] * self.len,
         )
-        us = self.search(uv, canvas)  # up scalar
-        u_scaled = scale_vec(uv, us)
-        scaled_vecs.append(u_scaled)
+        right_val = self.search(right_pos, canvas)
 
-        dv = (  # down vector
-            self.head[0],
-            self.head[1] - self.spread,
-            self.head[2],
+        # Calculate weighted direction
+        weighted = (
+            fwd_val * self.head[0] + left_val * left_dir[0] + right_val * right_dir[0],
+            fwd_val * self.head[1] + left_val * left_dir[1] + right_val * right_dir[1],
+            fwd_val * self.head[2] + left_val * left_dir[2] + right_val * right_dir[2],
         )
-        ds = self.search(dv, canvas)  # down scalar
-        d_scaled = scale_vec(dv, ds)
-        scaled_vecs.append(d_scaled)
 
-        ms = self.search(self.head, canvas)  # mid scalar
-        m_scaled = scale_vec(self.head, ms)
-        scaled_vecs.append(m_scaled)
+        new_heading = (
+            normalize_vec(weighted)
+            if (weighted[0] ** 2 + weighted[1] ** 2 + weighted[2] ** 2) > 0
+            else self.head
+        )
 
-        wd = weighted_dir(scaled_vecs)  # weighted dir
-
-        qd = Quadrants()
-        new_position = qd.assign(wd)
-
-        return new_position, wd
+        return new_heading
 
     def draw(self, canvas: np.ndarray):
         # LLM: if block
@@ -191,11 +224,18 @@ print("random spawning")
 
 
 def spawn_random():
+    # LLM: Rewrite of function
     for i in range(200):
+        # Random Cartesian direction
+        heading = normalize_vec((r.uniform(-1, 1), r.uniform(-1, 1), r.uniform(-1, 1)))
         particles.append(
             Particle(
-                pos=(r.randrange(1, sy), r.randrange(1, sx), r.randrange(1, sz)),
-                heading=(r.uniform(0, fcr), r.uniform(0, fcr), r.uniform(0, fcr)),
+                pos=(
+                    r.randrange(10, sy - 10),
+                    r.randrange(10, sx - 10),
+                    r.randrange(10, sz - 10),
+                ),
+                heading=heading,
             )
         )
 
@@ -209,13 +249,11 @@ for i in range(int(fps * rt)):
     new_particles = []
     for p in particles:
         if p.alive:
-            new_pos, new_heading = p.sense_and_rotate(
-                canvas
-            )  # naming could be better here
+            new_heading = p.sense_and_rotate(canvas)  # naming could be better here
             # LLM:
-            next_x = p.pos[0] + p.len * new_pos[0]
-            next_y = p.pos[1] + p.len * new_pos[1]
-            next_z = p.pos[2] + p.len * new_pos[2]
+            next_x = p.pos[0] + p.len * new_heading[0]
+            next_y = p.pos[1] + p.len * new_heading[1]
+            next_z = p.pos[2] + p.len * new_heading[2]
 
             new_particles.append(
                 Particle(pos=(next_x, next_y, next_z), heading=new_heading)
