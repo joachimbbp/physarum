@@ -121,4 +121,3 @@ imageio.mimsave(
     f"./output/physarum_{now}.gif", frames, fps=fps, subtractrectangles=True, loop=0
 )
 print("done")
-

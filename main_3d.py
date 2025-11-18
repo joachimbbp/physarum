@@ -1,15 +1,6 @@
 import numpy as np
 import math as m
 import random as r
-from enum import Enum
-
-import sys
-
-nv_path = "/Users/joachimpfefferkorn/repos/neurovolume/neurovolume/src"
-if nv_path not in sys.path:  # LLM:
-    sys.path.insert(0, nv_path)
-# VERSION: https://github.com/joachimbbp/neurovolume/tree/59a576bafa2dd9035a08a6c2be40c206c9d53d55
-import neurovolume as nv
 
 
 def sphere_to_cart(radial, azimuth, polar) -> tuple[float, float, float]:
@@ -25,28 +16,36 @@ def scale_vec(vec: tuple[float, float, float], scalar: float) -> tuple[float, fl
     return (vec[0] * scalar, vec[1] * scalar, vec[2] * scalar)
 
 
-def weighted_dir(vecs: [tuple[float, float]]) -> tuple[float, float]:
+def weighted_dir(vecs: [tuple[float, float]]) -> tuple[float, float, float]:
     # again, def a numpy implementation and maybe it's better
-    res = (0.0, 0.0)
+    r0 = 0.0
+    r1 = 0.0
+    r2 = 0.0
     for v in vecs:
-        res[0] += v[0]
-        res[1] += v[1]
-    # I've been using [top, bottom],
-    # arctan2 uses [bottom, top]
-    return np.arctan2(res[1], res[0])
+        r0 += v[0]
+        r1 += v[1]
+        r2 += v[2]
+    # WARN: I'm guessing that arctan is backwards like arctan2
+    return np.arctan([r2, r1, r0])
 
 
-class Qd(Enum):  # Quadrants
+class Quadrants:
     # Each quadrant starting value in radians
     # as we rotate counter-clockwise
     # tuple is input as (x, y, z) or
     # (bottom vector num, topvector num)
     # The motion will always be weighted forward in the "z" direction
     # HACK: there is probably a numpy specific way to do this!
-    D = np.arctan2(-1, -1, 1)  # DOWN
-    R = np.arctan2(-1, 1, 1)  # RIGHT
-    U = np.arctan2(1, 1, 1)  # UP
-    L = np.arctan2(1, -1, 1)  # LEFT
+    def __init__(self):
+        self.d = np.arctan([-1, -1, 1])  # DOWN
+        print(f"quadrant d: {self.d} of type {type(self.d)}")
+        self.r = np.arctan([-1, 1, 1])  # RIGHT
+        self.u = np.arctan([1, 1, 1])  # UP
+        self.l = np.arctan([1, -1, 1])  # LEFT
+
+    def assign(wd: tuple[float, float, float]):
+        if (wd
+        pass
 
 
 class Particle:
@@ -58,7 +57,7 @@ class Particle:
         self.alive = True
         # NOTE: All particles will just have a single pixel grow/sense length
 
-    def search(self, canvas: np.ndarray, pos: tuple[float, float, float]) -> float:
+    def search(self, pos: tuple[float, float, float], canvas: np.ndarray) -> float:
         # HACK: just casting to int is probably not the most accurate nearest-neighbor
         # Clamp: (probably some clever loop to DRY this)
         x = max(0, min(canvas.shape[0] - 1, int(pos[0])))
@@ -67,6 +66,7 @@ class Particle:
         return canvas[int(x)][int(y)][int(z)]
 
     def sense_and_rotate(self, canvas):
+        print(f"Type of self.head: {type(self.head)}, Value: {self.head}")
         scaled_vecs = []
         # z will always be the heading
 
@@ -76,7 +76,7 @@ class Particle:
             self.head[1],
             self.head[2],
         )
-        ls = self.search(canvas)  # left scalar
+        ls = self.search(lv, canvas)  # left scalar
         l_scaled = scale_vec(lv, ls)
         scaled_vecs.append(l_scaled)
 
@@ -114,17 +114,21 @@ class Particle:
         wd = weighted_dir(scaled_vecs)  # weighted dir
 
         new_pos = (-1, 0)
-        if (wd >= Qd.D.value) and (wd < Qd.R.value):
+        qd = Quadrants()
+        print(f"weighted direction: {wd} of type {type(wd)}")
+        if (wd >= qd.d) and (wd < qd.r):
             new_pos = (-1, 0)
-        elif (wd >= Qd.R.value) and (wd < Qd.U.value):
+        elif (wd >= qd.r.value) and (wd < qd.u.value):
             new_pos = (1, 0)
-        elif (wd >= Qd.U.value) and (wd < Qd.L.value):
+        elif (wd >= qd.u.value) and (wd < qd.l.value):
             new_pos = (0, 1)
-        elif (wd >= Qd.L.value) and (wd < Qd.D.value):
+        elif (wd >= qd.l.value) and (wd < qd.d.value):
             new_pos = (-1, 0)
         else:
             raise ValueError(f"undefined new_pos error. wd = {wd}")
-        new_heading = np.arctan2(new_pos[1], new_pos[0])
+        # WARN: I'm guessing that arctan is reversed like arctan2
+        new_heading = np.arctan([new_pos[2], new_pos[1], new_pos[0]])
+        print(f"new heading type: {new_heading}")
         return new_pos, new_heading
 
     def draw(self, canvas: np.ndarray):
@@ -152,7 +156,7 @@ decay = 0.95
 canvas = np.zeros((sy, sx, sz), dtype=np.float64)  # np uses h*w
 particles = []
 
-full_circ_rads = 2 * np.pi
+fcr = 2 * np.pi  # full circle radians
 
 print("random spawning")
 
@@ -162,7 +166,7 @@ def spawn_random():
         particles.append(
             Particle(
                 pos=(r.randrange(1, sy), r.randrange(1, sx), r.randrange(1, sx)),
-                heading=r.uniform(0, full_circ_rads),
+                heading=(r.uniform(0, fcr), r.uniform(0, fcr), r.uniform(0, fcr)),
             )
         )
 
@@ -170,9 +174,6 @@ def spawn_random():
 print("spawned")
 
 spawn_random()
-print(len(particles))
-for p in particles:
-    print(type(p))
 frames = []
 # # time steps
 for i in range(int(fps * rt)):
@@ -188,14 +189,26 @@ for i in range(int(fps * rt)):
     frames.append(canvas.copy())
     print(f"frames {i} rendered")
 
-# affine_identity = np.array([ # LLM:
-#     [1.0, 0.0, 0.0, 0.0],  # x-axis
-#     [0.0, 1.0, 0.0, 0.0],  # y-axis
-#     [0.0, 0.0, 1.0, 0.0],  # z-axis
-#     [0.0, 0.0, 0.0, 1.0],  # homogeneous coord
-# ], dtype=np.float64)
+import sys
 
-# for i, f in enumerate(frames):
-#     o = f'./output/physarum_{i}.vdb'
-#     nv.ndarray_to_VDB(f, o, affine_identity)
-# print('done')
+nv_path = "/Users/joachimpfefferkorn/repos/neurovolume/neurovolume/src"
+if nv_path not in sys.path:  # LLM:
+    sys.path.insert(0, nv_path)
+# VERSION: https://github.com/joachimbbp/neurovolume/tree/59a576bafa2dd9035a08a6c2be40c206c9d53d55
+import neurovolume as nv
+
+affine_identity = np.array(
+    [  # LLM:
+        [1.0, 0.0, 0.0, 0.0],  # x-axis
+        [0.0, 1.0, 0.0, 0.0],  # y-axis
+        [0.0, 0.0, 1.0, 0.0],  # z-axis
+        [0.0, 0.0, 0.0, 1.0],  # homogeneous coord
+    ],
+    dtype=np.float64,
+)
+
+for i, f in enumerate(frames):
+    o = f"./output/physarum_{i}.vdb"
+    nv.ndarray_to_VDB(f, o, affine_identity)
+    print(f"saved {o} to disk")
+print("done")
