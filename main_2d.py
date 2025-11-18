@@ -40,18 +40,19 @@ class Particle:
         elif right > left:  # right
             direction = self.head + self.spread
         else:
-            direction = r.choice(
-                [self.head - self.spread, self.head + self.spread])
+            direction = r.choice([self.head - self.spread, self.head + self.spread])
 
-        new_pos = (self.len * math.sin(direction) + self.pos[0],  # FIX: redundant
-                   self.len * math.cos(direction) + self.pos[1])
+        new_pos = (
+            self.len * math.sin(direction) + self.pos[0],  # FIX: redundant
+            self.len * math.cos(direction) + self.pos[1],
+        )
         return new_pos, direction
 
     def draw(self, canvas: np.ndarray):
-        if (self.pos[0] >= canvas.shape[0]):
-            if (self.pos[1] >= canvas.shape[1]):
-                if (self.pos[0] < 0):
-                    if (self.pos[1] < 0):
+        if self.pos[0] >= canvas.shape[0]:
+            if self.pos[1] >= canvas.shape[1]:
+                if self.pos[0] < 0:
+                    if self.pos[1] < 0:
                         self.alive = False
                         return
                         # Kills particles at edge of frame
@@ -75,24 +76,28 @@ full_circ_rads = 2 * np.pi
 
 def spawn_random():
     for i in range(1600):
-        particles.append(Particle(pos=(r.randrange(1, sy), r.randrange(1, sx)),
-                                  heading=r.uniform(0, full_circ_rads)))
+        particles.append(
+            Particle(
+                pos=(r.randrange(1, sy), r.randrange(1, sx)),
+                heading=r.uniform(0, full_circ_rads),
+            )
+        )
 
 
 def spawn_rect():
     xpad_l = sx / 4
-    xpad_h = xpad_l + (sx/2)
+    xpad_h = xpad_l + (sx / 2)
     ypad_l = sy / 4
-    ypad_h = ypad_l + (sy/2)
-    print(f'xpad low: {xpad_l} xpad high: {xpad_h}')
-    print(f'ypad low: {ypad_l} ypad high: {ypad_h}')
+    ypad_h = ypad_l + (sy / 2)
+    print(f"xpad low: {xpad_l} xpad high: {xpad_h}")
+    print(f"ypad low: {ypad_l} ypad high: {ypad_h}")
     for x in range(sx):
         if (x > xpad_l) and (x < xpad_h):
             for y in range(sy):
                 if (y > ypad_l) and (y < ypad_h):
                     particles.append(
-                        Particle(pos=(x, y),
-                                 heading=r.uniform(0, full_circ_rads)))
+                        Particle(pos=(x, y), heading=r.uniform(0, full_circ_rads))
+                    )
 
 
 spawn_rect()
@@ -109,9 +114,11 @@ for i in range(int(fps * rt)):
     for p in particles:
         p.draw(canvas)
     frames.append(canvas.copy())
-    print(f'frames {i} rendered')
+    print(f"frames {i} rendered")
 
-now = re.sub(r'[:-]', '', datetime.now().isoformat(timespec='seconds'))
-imageio.mimsave(f'./output/physarum_{now}.gif',
-                frames, fps=fps, subtractrectangles=True, loop=0)
-print('done')
+now = re.sub(r"[:-]", "", datetime.now().isoformat(timespec="seconds"))
+imageio.mimsave(
+    f"./output/physarum_{now}.gif", frames, fps=fps, subtractrectangles=True, loop=0
+)
+print("done")
+
