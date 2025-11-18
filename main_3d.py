@@ -29,22 +29,61 @@ def weighted_dir(vecs: [tuple[float, float]]) -> tuple[float, float, float]:
     return np.arctan([r2, r1, r0])
 
 
+# -
 class Quadrants:
-    # Each quadrant starting value in radians
-    # as we rotate counter-clockwise
-    # tuple is input as (x, y, z) or
-    # (bottom vector num, topvector num)
-    # The motion will always be weighted forward in the "z" direction
-    # HACK: there is probably a numpy specific way to do this!
-    def __init__(self):
-        self.d = np.arctan([-1, -1, 1])  # DOWN
-        print(f"quadrant d: {self.d} of type {type(self.d)}")
-        self.r = np.arctan([-1, 1, 1])  # RIGHT
-        self.u = np.arctan([1, 1, 1])  # UP
-        self.l = np.arctan([1, -1, 1])  # LEFT
+    # SOURCE: for conversions:
+    # https://mathworld.wolfram.com/SphericalCoordinates.html?utm_source=chatgpt.com
+    def radial_from_cart(self, x, y, z):
+        return np.sqrt(np.square(x) + np.square(y) + np.square(z))
 
-    def assign(wd: tuple[float, float, float]):
-        pass
+    def azimuth_from_cart(self, x, y):
+        return np.arctan2(y, x)  # LLM:
+
+    def polar_from_cart(self, z, r):
+        return np.arccos(z / r)  # LLM: fix
+
+    def build_coords(self, x, y, z):
+        """'
+        returns radial, azimuth, polar as per wiki's convention
+        """
+        r = self.radial_from_cart(x, y, z)
+        azimuth = self.azimuth_from_cart(x, y)
+        polar = self.polar_from_cart(z, r)
+        return r, azimuth, polar
+
+    def __init__(self):
+        # each quadrant represents the starting radian value
+        # running counter clockwise around the circular end
+        # of the conicnal search radius
+        self.d = self.build_coords(-1, -1, 1)  # DOWN
+        self.r = self.build_coords(1, -1, 1)  # RIGHT
+        self.u = self.build_coords(1, 1, 1)  # UP
+        self.l = self.build_coords(-1, 1, 1)  # LEFT
+
+    def dc(self, c):  # display coords
+        return f"radial: {c[0]}, azimuth: {c[1]}, polar: {c[2]}"
+
+    def assign(self, wd: tuple[float, float, float]):
+        # wd: Weighted Direction Vector
+        # returns the new position
+        wdca = self.build_coords(wd[0], wd[1], wd[2])[1]
+        if self.d[1] <= wdca < self.r[1]:
+            # TODO: Dry this assignment (redundant with init)
+            return (-1, -1, 1)
+        elif self.r[1] <= wdca < self.u[1]:
+            return (1, -1, 1)
+        elif self.u[1] <= wdca < self.l[1]:
+            return (1, 1, 1)
+        elif self.l[1] <= wdca:
+            return (-1, 1, 1)
+        else:
+            raise ValueError("non present radian quadrant")
+
+    def debug_print(self):
+        print(f"quadrant d: \n      {self.dc(self.d)}\n")
+        print(f"quadrant r: \n      {self.dc(self.r)}\n")
+        print(f"quadrant u: \n      {self.dc(self.u)}\n")
+        print(f"quadrant l: \n      {self.dc(self.l)}\n")
 
 
 class Particle:
@@ -112,24 +151,10 @@ class Particle:
 
         wd = weighted_dir(scaled_vecs)  # weighted dir
 
-        new_pos = (-1, 0)
         qd = Quadrants()
-        # FIX: Assign quadrant here!
-        print(f"weighted direction: {wd} of type {type(wd)}")
-        if (wd >= qd.d) and (wd < qd.r):
-            new_pos = (-1, 0)
-        elif (wd >= qd.r.value) and (wd < qd.u.value):
-            new_pos = (1, 0)
-        elif (wd >= qd.u.value) and (wd < qd.l.value):
-            new_pos = (0, 1)
-        elif (wd >= qd.l.value) and (wd < qd.d.value):
-            new_pos = (-1, 0)
-        else:
-            raise ValueError(f"undefined new_pos error. wd = {wd}")
-        # WARN: I'm guessing that arctan is reversed like arctan2
-        new_heading = np.arctan([new_pos[2], new_pos[1], new_pos[0]])
-        print(f"new heading type: {new_heading}")
-        return new_pos, new_heading
+        new_position = qd.assign(wd)
+
+        return new_position, wd
 
     def draw(self, canvas: np.ndarray):
         if self.pos[0] >= canvas.shape[0]:
@@ -142,7 +167,7 @@ class Particle:
             # HACK: it feels weird that this is in draw.
 
         draw_val = 1.0
-        canvas[int(self.pos[0])][int(self.pos[1])[int(self.pos[2])]] = draw_val
+        canvas[int(self.pos[0])][int(self.pos[1])][int(self.pos[2])] = draw_val
 
 
 sx = 100
@@ -162,7 +187,7 @@ print("random spawning")
 
 
 def spawn_random():
-    for i in range(500):
+    for i in range(100):
         particles.append(
             Particle(
                 pos=(r.randrange(1, sy), r.randrange(1, sx), r.randrange(1, sx)),
