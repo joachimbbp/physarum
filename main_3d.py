@@ -7,7 +7,7 @@ def sphere_to_cart(radial, azimuth, polar) -> tuple[float, float, float]:
     # SOURCE: https://mathworld.wolfram.com/SphericalCoordinates.html
     x = radial * m.cos(azimuth) * m.sin(polar)
     y = radial * m.sin(azimuth) * m.sin(polar)
-    z = radial * m.sin(azimuth)
+    z = radial * m.cos(polar)  # LLM: Suggestion
     return x, y, z
 
 
@@ -104,7 +104,6 @@ class Particle:
         return canvas[int(x)][int(y)][int(z)]
 
     def sense_and_rotate(self, canvas):
-        print(f"Type of self.head: {type(self.head)}, Value: {self.head}")
         scaled_vecs = []
         # z will always be the heading
 
@@ -157,12 +156,17 @@ class Particle:
         return new_position, wd
 
     def draw(self, canvas: np.ndarray):
-        if self.pos[0] >= canvas.shape[0]:
-            if self.pos[1] >= canvas.shape[1]:
-                if self.pos[2] >= canvas.shape[2]:
-                    if (self.pos[0] < 0) or (self.pos[1] < 0):
-                        self.alive = False
-                        return
+        # LLM: if block
+        if (
+            self.pos[0] < 0
+            or self.pos[0] >= canvas.shape[0]
+            or self.pos[1] < 0
+            or self.pos[1] >= canvas.shape[1]
+            or self.pos[2] < 0
+            or self.pos[2] >= canvas.shape[2]
+        ):
+            self.alive = False
+            return
             # Kills particles at edge of frame
             # HACK: it feels weird that this is in draw.
 
@@ -174,9 +178,9 @@ sx = 100
 sy = 100
 sz = 100
 fps = 24
-rt = 6  # runtime in seconds
+rt = 2  # runtime in seconds
 
-decay = 0.95
+decay = 0.99
 
 canvas = np.zeros((sy, sx, sz), dtype=np.float64)  # np uses h*w
 particles = []
@@ -187,10 +191,10 @@ print("random spawning")
 
 
 def spawn_random():
-    for i in range(100):
+    for i in range(200):
         particles.append(
             Particle(
-                pos=(r.randrange(1, sy), r.randrange(1, sx), r.randrange(1, sx)),
+                pos=(r.randrange(1, sy), r.randrange(1, sx), r.randrange(1, sz)),
                 heading=(r.uniform(0, fcr), r.uniform(0, fcr), r.uniform(0, fcr)),
             )
         )
@@ -205,8 +209,17 @@ for i in range(int(fps * rt)):
     new_particles = []
     for p in particles:
         if p.alive:
-            p, h = p.sense_and_rotate(canvas)  # naming could be better here
-            new_particles.append(Particle(p, h))
+            new_pos, new_heading = p.sense_and_rotate(
+                canvas
+            )  # naming could be better here
+            # LLM:
+            next_x = p.pos[0] + p.len * new_pos[0]
+            next_y = p.pos[1] + p.len * new_pos[1]
+            next_z = p.pos[2] + p.len * new_pos[2]
+
+            new_particles.append(
+                Particle(pos=(next_x, next_y, next_z), heading=new_heading)
+            )
     particles = new_particles
     canvas *= decay
     for p in particles:
@@ -233,7 +246,7 @@ affine_identity = np.array(
 )
 
 for i, f in enumerate(frames):
-    o = f"./output/physarum_{i}.vdb"
+    o = f"./output/physarum_nd_{i}.vdb"
     nv.ndarray_to_VDB(f, o, affine_identity)
     print(f"saved {o} to disk")
 print("done")
