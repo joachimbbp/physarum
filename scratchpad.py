@@ -34,16 +34,17 @@ class Quadrants:
         # running counter clockwise around the circular end
         # of the conicnal search radius
         self.d = self.build_coords(-1, -1, 1)  # DOWN
-        self.r = self.build_coords(-1, 1, 1)  # RIGHT
+        self.r = self.build_coords(1, -1, 1)  # RIGHT
         self.u = self.build_coords(1, 1, 1)  # UP
-        self.l = self.build_coords(1, -1, 1)  # LEFT
+        self.l = self.build_coords(-1, 1, 1)  # LEFT
+
+    def dc(self, c):  # display coords
+        return f"radial: {c[0]}, azimuth: {c[1]}, polar: {c[2]}"
 
     def assign(self, wd: tuple[float, float, float]):
         # wd: Weighted Direction Vector
         wd_coords = self.build_coords(wd[0], wd[1], wd[2])
-
-    def dc(self, c):  # display coords
-        return f"radial: {c[0]}, azimuth: {c[1]}, polar: {c[2]}"
+        print(f"wd coords: {self.dc(wd_coords)}\n")
 
     def debug_print(self):
         print(f"quadrant d: \n      {self.dc(self.d)}\n")
@@ -53,4 +54,5 @@ class Quadrants:
 
 
 q = Quadrants()
+q.assign((1, 0, 1))
 q.debug_print()
