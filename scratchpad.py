@@ -43,8 +43,19 @@ class Quadrants:
 
     def assign(self, wd: tuple[float, float, float]):
         # wd: Weighted Direction Vector
-        wd_coords = self.build_coords(wd[0], wd[1], wd[2])
-        print(f"wd coords: {self.dc(wd_coords)}\n")
+        # TODO: a global enum would be pretty robust for these
+        wdca = self.build_coords(wd[0], wd[1], wd[2])[1]
+        print("weidhged direction coord azimuth: ", wdca, type(wdca))
+        if self.d[1] <= wdca < self.r[1]:
+            return "down"
+        elif self.r[1] <= wdca < self.u[1]:
+            return "right"
+        elif self.u[1] <= wdca < self.l[1]:
+            return "up"
+        elif self.l[1] <= wdca:
+            return "left"
+        else:
+            return "err"
 
     def debug_print(self):
         print(f"quadrant d: \n      {self.dc(self.d)}\n")
@@ -53,6 +64,9 @@ class Quadrants:
         print(f"quadrant l: \n      {self.dc(self.l)}\n")
 
 
+# Testing:
 q = Quadrants()
-q.assign((1, 0, 1))
 q.debug_print()
+
+print("right assign", q.assign((1, 0, 1)))
+print("up assign", q.assign((0, 1, 1)))
