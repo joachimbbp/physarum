@@ -4,6 +4,7 @@ import random as r
 import imageio
 from datetime import datetime
 import re
+import scipy as sp
 from scipy import ndimage as ndi
 
 
@@ -127,7 +128,8 @@ scale = 2
 for f in frames:
     bigger = np.repeat(np.repeat(f, scale, axis=0), scale, axis=1)  # llm:
     dilated = ndi.grey_dilation(bigger, size=(2, 2))
-    resized.append(dilated)
+    eroded = sp.ndimage.binary_erosion(dilated)
+    resized.append(eroded)
 
 
 now = re.sub(r"[:-]", "", datetime.now().isoformat(timespec="seconds"))
