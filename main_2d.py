@@ -64,11 +64,11 @@ class Particle:
         canvas[int(self.pos[0])][int(self.pos[1])] = draw_val
 
 
-sx = 400
-sy = 400
+sx = 100
+sy = 100
 fps = 24
-rt = 30  # runtime in seconds
-render_start = 20  # in seconds
+rt = 6  # runtime in seconds
+render_start = 0  # in seconds
 
 decay = 0.99
 
@@ -120,8 +120,14 @@ for i in range(int(fps * rt)):
         frames.append(canvas.copy())
         print(f"frames {i} rendered")
 
+resized = []
+scale = 5
+for f in frames:
+    bigger = np.repeat(np.repeat(f, scale, axis=0), scale, axis=1)  # LLM:
+    resized.append(bigger)
+
 now = re.sub(r"[:-]", "", datetime.now().isoformat(timespec="seconds"))
 imageio.mimsave(
-    f"./output/physarum_{now}.gif", frames, fps=fps, subtractrectangles=True, loop=0
+    f"./output/physarum_{now}.gif", resized, fps=fps, subtractrectangles=True, loop=0
 )
 print("done")
