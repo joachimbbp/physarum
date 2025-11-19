@@ -49,14 +49,16 @@ class Particle:
         return new_pos, direction
 
     def draw(self, canvas: np.ndarray):
-        if self.pos[0] >= canvas.shape[0]:
-            if self.pos[1] >= canvas.shape[1]:
-                if self.pos[0] < 0:
-                    if self.pos[1] < 0:
-                        self.alive = False
-                        return
-                        # Kills particles at edge of frame
-                        # HACK: it feels weird that this is in draw.
+        if (
+            (self.pos[0] >= canvas.shape[0])
+            or (self.pos[1] >= canvas.shape[1])
+            or (self.pos[0] < 0)
+            or (self.pos[1] < 0)
+        ):
+            self.alive = False
+            return
+            # Kills particles at edge of frame
+            # HACK: it feels weird that this is in draw.
 
         draw_val = 255  # TODO: will be a 0-1 foloat for vdbs eventually
         canvas[int(self.pos[0])][int(self.pos[1])] = draw_val
@@ -65,9 +67,10 @@ class Particle:
 sx = 400
 sy = 400
 fps = 24
-rt = 6  # runtime in seconds
+rt = 30  # runtime in seconds
+render_start = 20  # in seconds
 
-decay = 0.95
+decay = 0.99
 
 canvas = np.zeros((sy, sx))  # np uses h*w
 particles = []
@@ -113,8 +116,9 @@ for i in range(int(fps * rt)):
     canvas *= decay
     for p in particles:
         p.draw(canvas)
-    frames.append(canvas.copy())
-    print(f"frames {i} rendered")
+    if i >= (render_start * fps):
+        frames.append(canvas.copy())
+        print(f"frames {i} rendered")
 
 now = re.sub(r"[:-]", "", datetime.now().isoformat(timespec="seconds"))
 imageio.mimsave(

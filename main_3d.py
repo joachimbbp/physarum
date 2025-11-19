@@ -211,9 +211,11 @@ sx = 100
 sy = 100
 sz = 100
 fps = 24
-rt = 2  # runtime in seconds
+rt = 6  # runtime in seconds
 
-decay = 0.99
+decay = 0.95
+
+num_particles = 300
 
 canvas = np.zeros((sy, sx, sz), dtype=np.float64)  # np uses h*w
 particles = []
@@ -225,7 +227,7 @@ print("random spawning")
 
 def spawn_random():
     # LLM: Rewrite of function
-    for i in range(200):
+    for i in range(num_particles):
         # Random Cartesian direction
         heading = normalize_vec((r.uniform(-1, 1), r.uniform(-1, 1), r.uniform(-1, 1)))
         particles.append(
