@@ -6,6 +6,7 @@ from datetime import datetime
 import re
 import scipy as sp
 from scipy import ndimage as ndi
+from scipy.ndimage import gaussian_filter
 
 
 class Particle:
@@ -107,6 +108,8 @@ def spawn_rect():
 
 spawn_random()
 frames = []
+scale = 3
+footprint = ndi.generate_binary_structure(2, 1)
 # time steps
 for i in range(int(fps * rt)):
     new_particles = []
@@ -119,24 +122,22 @@ for i in range(int(fps * rt)):
     for p in particles:
         p.draw(canvas)
     if i >= (render_start * fps):
-        frames.append(canvas.copy())
-        print(f"frames {i} rendered")
+        # PROCESSING:
+        c = np.repeat(
+            np.repeat(canvas, scale, axis=0), scale, axis=1
+        )  # LLM: upres logic
 
-resized = []
-scale = 2
-# PROCESS:
-for f in frames:
-    bigger = np.repeat(np.repeat(f, scale, axis=0), scale, axis=1)  # llm:
-    # I guess you could put thi with decay too
-    # might be more performatn and oyu could use plain
-    # old dilate
-    dilated = ndi.grey_dilation(bigger, size=(2, 2))
-    eroded = sp.ndimage.binary_erosion(dilated)
-    resized.append(eroded)
+        c = ndi.grey_dilation(c, size=(2, 2))
+        c = gaussian_filter(c, sigma=1)
+        c = sp.ndimage.grey_erosion(c, footprint=footprint)
+
+        frames.append(c.copy())
+
+        print(f"frames {i} rendered")
 
 
 now = re.sub(r"[:-]", "", datetime.now().isoformat(timespec="seconds"))
 imageio.mimsave(
-    f"./output/physarum_{now}.gif", resized, fps=fps, subtractrectangles=True, loop=0
+    f"./output/physarum_{now}.gif", frames, fps=fps, subtractrectangles=True, loop=0
 )
 print("done")
