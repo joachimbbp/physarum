@@ -3,6 +3,8 @@ import math as m
 import random as r
 import scipy as sp
 from scipy import ndimage as ndi
+from scipy.ndimage import gaussian_filter
+import sys
 
 
 def sphere_to_cart(radial, azimuth, polar) -> tuple[float, float, float]:
@@ -94,6 +96,10 @@ class Quadrants:
         print(f"quadrant r: \n      {self.dc(self.r)}\n")
         print(f"quadrant u: \n      {self.dc(self.u)}\n")
         print(f"quadrant l: \n      {self.dc(self.l)}\n")
+
+
+footprint = ndi.generate_binary_structure(3, 1)
+scale = 4
 
 
 class Particle:
@@ -209,15 +215,15 @@ class Particle:
         canvas[int(self.pos[0])][int(self.pos[1])][int(self.pos[2])] = draw_val
 
 
-sx = 200
-sy = 200
+sx = 50
+sy = 50
 sz = 200
 fps = 24
 rt = 6  # runtime in seconds
 
-decay = 0.95
+decay = 0.90
 
-num_particles = 300
+num_particles = 80
 
 canvas = np.zeros((sy, sx, sz), dtype=np.float64)  # np uses h*w
 particles = []
@@ -244,42 +250,9 @@ def spawn_random():
         )
 
 
-print("spawned")
-
-upscale = 2
-
 spawn_random()
-frames = []
+print("spawned")
 # # time steps
-for i in range(int(fps * rt)):
-    new_particles = []
-    for p in particles:
-        if p.alive:
-            new_heading = p.sense_and_rotate(canvas)  # naming could be better here
-            # LLM:
-            next_x = p.pos[0] + p.len * new_heading[0]
-            next_y = p.pos[1] + p.len * new_heading[1]
-            next_z = p.pos[2] + p.len * new_heading[2]
-
-            new_particles.append(
-                Particle(pos=(next_x, next_y, next_z), heading=new_heading)
-            )
-    particles = new_particles
-    canvas *= decay
-
-    for p in particles:
-        p.draw(canvas)
-
-    # post processing
-    bigger = np.repeat(np.repeat(canvas, upscale, axis=0), upscale, axis=1)  # llm:
-    dilated = ndi.grey_dilation(bigger, size=(2, 2, 2))
-    eroded = sp.ndimage.binary_erosion(dilated)
-
-    frames.append(eroded)
-    print(f"frames {i} rendered")
-
-import sys
-
 nv_path = "/Users/joachimpfefferkorn/repos/neurovolume/neurovolume/src"
 if nv_path not in sys.path:  # LLM:
     sys.path.insert(0, nv_path)
@@ -296,8 +269,37 @@ affine_identity = np.array(
     dtype=np.float64,
 )
 
-for i, f in enumerate(frames):
-    o = f"./output/physarum_nd_{i}.vdb"
-    nv.ndarray_to_VDB(f, o, affine_identity)
+nf = fps * rt
+for f in range(nf):
+    new_particles = []
+    print(f"simulating particles on frame {f}/{nf}")
+    for p in particles:
+        if p.alive:
+            new_heading = p.sense_and_rotate(canvas)  # naming could be better here
+            # LLM:
+            next_x = p.pos[0] + p.len * new_heading[0]
+            next_y = p.pos[1] + p.len * new_heading[1]
+            next_z = p.pos[2] + p.len * new_heading[2]
+
+            new_particles.append(
+                Particle(pos=(next_x, next_y, next_z), heading=new_heading)
+            )
+            # print(f"particle {i} added")
+    particles = new_particles
+    canvas *= decay
+
+    print(f"drawing particles for froame {f}/{nf}")
+    for p in particles:
+        p.draw(canvas)
+
+        # post processing
+        c = np.repeat(np.repeat(canvas, scale, axis=0), scale, axis=1)
+        c = ndi.grey_dilation(c, size=(2, 2, 2))
+        c = gaussian_filter(c, sigma=1)
+        # Straight from the docs:
+        c = sp.ndimage.grey_erosion(c, footprint=footprint)
+        # print(f"particle {i} drawn")
+
+    o = f"./output/physarum_nd_{f}.vdb"
+    nv.ndarray_to_VDB(c.copy(), o, affine_identity)
     print(f"saved {o} to disk")
-print("done")

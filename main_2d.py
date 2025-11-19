@@ -123,12 +123,11 @@ for i in range(int(fps * rt)):
         p.draw(canvas)
     if i >= (render_start * fps):
         # PROCESSING:
-        c = np.repeat(
-            np.repeat(canvas, scale, axis=0), scale, axis=1
-        )  # LLM: upres logic
-
+        # LLM: upres logic
+        c = np.repeat(np.repeat(canvas, scale, axis=0), scale, axis=1)
         c = ndi.grey_dilation(c, size=(2, 2))
         c = gaussian_filter(c, sigma=1)
+        # Straight from the docs:
         c = sp.ndimage.grey_erosion(c, footprint=footprint)
 
         frames.append(c.copy())
