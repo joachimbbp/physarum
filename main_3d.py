@@ -6,6 +6,19 @@ from scipy import ndimage as ndi
 from scipy.ndimage import gaussian_filter
 import sys
 
+# _: SETUP:
+sx = 100
+sy = 100
+sz = 100
+scale = 3
+fps = 24
+rt = 6  # runtime in seconds
+render_start = 1  # in seconds
+decay = 0.90
+num_particles = 200
+dl = 4  # dilation
+blur = 1
+
 
 def sphere_to_cart(radial, azimuth, polar) -> tuple[float, float, float]:
     # SOURCE: https://mathworld.wolfram.com/SphericalCoordinates.html
@@ -99,7 +112,6 @@ class Quadrants:
 
 
 footprint = ndi.generate_binary_structure(3, 1)
-scale = 4
 
 
 class Particle:
@@ -215,16 +227,6 @@ class Particle:
         canvas[int(self.pos[0])][int(self.pos[1])][int(self.pos[2])] = draw_val
 
 
-sx = 100
-sy = 100
-sz = 100
-fps = 24
-rt = 6  # runtime in seconds
-
-decay = 0.90
-
-num_particles = 200
-
 canvas = np.zeros((sy, sx, sz), dtype=np.float64)  # np uses h*w
 particles = []
 
@@ -288,20 +290,22 @@ for f in range(nf):
     particles = new_particles
     canvas *= decay
 
-    print(f"drawing particles for froame {f}/{nf}")
+    print(f"drawing particles for frame {f}/{nf}")
     for p in particles:
         p.draw(canvas)
+    if f >= (render_start * fps):
+        print(f"processing and rendering particles for frame {f}/{nf}")
+        # post processing
+        c = np.repeat(
+            np.repeat(np.repeat(canvas, scale, axis=0), scale, axis=1), scale, axis=2
+        )
+        c = ndi.grey_dilation(c, size=(dl, dl, dl))
+        c = gaussian_filter(c, sigma=blur)
+        # Straight from the docs:
+        c = sp.ndimage.grey_erosion(c, footprint=footprint)
+        # print(f"particle {i} drawn")
 
-    # post processing
-    c = np.repeat(
-        np.repeat(np.repeat(canvas, scale, axis=0), scale, axis=1), scale, axis=2
-    )
-    c = ndi.grey_dilation(c, size=(8, 8, 8))
-    c = gaussian_filter(c, sigma=2)
-    # Straight from the docs:
-    c = sp.ndimage.grey_erosion(c, footprint=footprint)
-    # print(f"particle {i} drawn")
-
-    o = f"./output/physarum_nd_{f}.vdb"
-    nv.ndarray_to_VDB(c.copy(), o, affine_identity)
-    print(f"saved {o} to disk")
+        o = f"./output/physarum_nd_{f}.vdb"
+        nv.ndarray_to_VDB(c.copy(), o, affine_identity)
+        print(f"saved {o} to disk")
+print("done")

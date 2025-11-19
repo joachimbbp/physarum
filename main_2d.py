@@ -8,6 +8,17 @@ import scipy as sp
 from scipy import ndimage as ndi
 from scipy.ndimage import gaussian_filter
 
+# _: SETUP:
+sx = 400
+sy = 400
+fps = 24
+rt = 6  # runtime in seconds
+render_start = 5  # in seconds
+scale = 3
+decay = 0.90
+num_particles = 1600
+dl = 2
+
 
 class Particle:
     def __init__(self, pos: tuple[int, int], heading: float):
@@ -67,21 +78,13 @@ class Particle:
         canvas[int(self.pos[0])][int(self.pos[1])] = draw_val
 
 
-sx = 400
-sy = 400
-fps = 24
-rt = 6  # runtime in seconds
-render_start = 0  # in seconds
-
-decay = 0.90
-
 canvas = np.zeros((sy, sx))  # np uses h*w
 particles = []
 full_circ_rads = 2 * np.pi
 
 
-def spawn_random():
-    for i in range(1600):
+def spawn_random(num_particles: int):
+    for i in range(num_particles):
         particles.append(
             Particle(
                 pos=(r.randrange(1, sy), r.randrange(1, sx)),
@@ -106,13 +109,12 @@ def spawn_rect():
                     )
 
 
-spawn_random()
+spawn_random(num_particles)
 frames = []
-scale = 3
 # Straight from the docs:
 footprint = ndi.generate_binary_structure(2, 1)
 # time steps
-for i in range(int(fps * rt)):
+for i in range(fps * rt):
     new_particles = []
     for p in particles:
         if p.alive:
@@ -126,7 +128,7 @@ for i in range(int(fps * rt)):
         # PROCESSING:
         # LLM: upres logic
         c = np.repeat(np.repeat(canvas, scale, axis=0), scale, axis=1)
-        c = ndi.grey_dilation(c, size=(2, 2))
+        c = ndi.grey_dilation(c, size=(dl, dl))
         c = gaussian_filter(c, sigma=1)
         # Straight from the docs:
         c = sp.ndimage.grey_erosion(c, footprint=footprint)
@@ -141,10 +143,3 @@ imageio.mimsave(
     f"./output/physarum_{now}.gif", frames, fps=fps, subtractrectangles=True, loop=0
 )
 print("done")
-
-# TODO:
-# Reintroduce separate render and simulate
-# so you can only render the last few frames
-# make it a bit bigger
-# remember this is just a sample project to test
-# library imports!
