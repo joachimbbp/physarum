@@ -109,6 +109,7 @@ def spawn_rect():
 spawn_random()
 frames = []
 scale = 3
+# Straight from the docs:
 footprint = ndi.generate_binary_structure(2, 1)
 # time steps
 for i in range(int(fps * rt)):
@@ -140,3 +141,10 @@ imageio.mimsave(
     f"./output/physarum_{now}.gif", frames, fps=fps, subtractrectangles=True, loop=0
 )
 print("done")
+
+# TODO:
+# Reintroduce separate render and simulate
+# so you can only render the last few frames
+# make it a bit bigger
+# remember this is just a sample project to test
+# library imports!

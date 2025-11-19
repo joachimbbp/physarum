@@ -215,15 +215,15 @@ class Particle:
         canvas[int(self.pos[0])][int(self.pos[1])][int(self.pos[2])] = draw_val
 
 
-sx = 50
-sy = 50
-sz = 200
+sx = 100
+sy = 100
+sz = 100
 fps = 24
 rt = 6  # runtime in seconds
 
 decay = 0.90
 
-num_particles = 80
+num_particles = 200
 
 canvas = np.zeros((sy, sx, sz), dtype=np.float64)  # np uses h*w
 particles = []
@@ -292,13 +292,15 @@ for f in range(nf):
     for p in particles:
         p.draw(canvas)
 
-        # post processing
-        c = np.repeat(np.repeat(canvas, scale, axis=0), scale, axis=1)
-        c = ndi.grey_dilation(c, size=(2, 2, 2))
-        c = gaussian_filter(c, sigma=1)
-        # Straight from the docs:
-        c = sp.ndimage.grey_erosion(c, footprint=footprint)
-        # print(f"particle {i} drawn")
+    # post processing
+    c = np.repeat(
+        np.repeat(np.repeat(canvas, scale, axis=0), scale, axis=1), scale, axis=2
+    )
+    c = ndi.grey_dilation(c, size=(8, 8, 8))
+    c = gaussian_filter(c, sigma=2)
+    # Straight from the docs:
+    c = sp.ndimage.grey_erosion(c, footprint=footprint)
+    # print(f"particle {i} drawn")
 
     o = f"./output/physarum_nd_{f}.vdb"
     nv.ndarray_to_VDB(c.copy(), o, affine_identity)
