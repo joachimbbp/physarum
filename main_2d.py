@@ -4,6 +4,7 @@ import random as r
 import imageio
 from datetime import datetime
 import re
+from scipy import ndimage as ndi
 
 
 class Particle:
@@ -64,13 +65,13 @@ class Particle:
         canvas[int(self.pos[0])][int(self.pos[1])] = draw_val
 
 
-sx = 100
-sy = 100
+sx = 400
+sy = 400
 fps = 24
 rt = 6  # runtime in seconds
 render_start = 0  # in seconds
 
-decay = 0.99
+decay = 0.90
 
 canvas = np.zeros((sy, sx))  # np uses h*w
 particles = []
@@ -103,7 +104,7 @@ def spawn_rect():
                     )
 
 
-spawn_rect()
+spawn_random()
 frames = []
 # time steps
 for i in range(int(fps * rt)):
@@ -121,10 +122,13 @@ for i in range(int(fps * rt)):
         print(f"frames {i} rendered")
 
 resized = []
-scale = 5
+scale = 2
+# PROCESS:
 for f in frames:
-    bigger = np.repeat(np.repeat(f, scale, axis=0), scale, axis=1)  # LLM:
-    resized.append(bigger)
+    bigger = np.repeat(np.repeat(f, scale, axis=0), scale, axis=1)  # llm:
+    dilated = ndi.grey_dilation(bigger, size=(2, 2))
+    resized.append(dilated)
+
 
 now = re.sub(r"[:-]", "", datetime.now().isoformat(timespec="seconds"))
 imageio.mimsave(
