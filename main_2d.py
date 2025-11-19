@@ -127,6 +127,9 @@ scale = 2
 # PROCESS:
 for f in frames:
     bigger = np.repeat(np.repeat(f, scale, axis=0), scale, axis=1)  # llm:
+    # I guess you could put thi with decay too
+    # might be more performatn and oyu could use plain
+    # old dilate
     dilated = ndi.grey_dilation(bigger, size=(2, 2))
     eroded = sp.ndimage.binary_erosion(dilated)
     resized.append(eroded)

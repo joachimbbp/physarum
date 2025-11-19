@@ -1,6 +1,8 @@
 import numpy as np
 import math as m
 import random as r
+import scipy as sp
+from scipy import ndimage as ndi
 
 
 def sphere_to_cart(radial, azimuth, polar) -> tuple[float, float, float]:
@@ -207,9 +209,9 @@ class Particle:
         canvas[int(self.pos[0])][int(self.pos[1])][int(self.pos[2])] = draw_val
 
 
-sx = 100
-sy = 100
-sz = 100
+sx = 200
+sy = 200
+sz = 200
 fps = 24
 rt = 6  # runtime in seconds
 
@@ -244,6 +246,8 @@ def spawn_random():
 
 print("spawned")
 
+upscale = 2
+
 spawn_random()
 frames = []
 # # time steps
@@ -262,9 +266,16 @@ for i in range(int(fps * rt)):
             )
     particles = new_particles
     canvas *= decay
+
     for p in particles:
         p.draw(canvas)
-    frames.append(canvas.copy())
+
+    # post processing
+    bigger = np.repeat(np.repeat(canvas, upscale, axis=0), upscale, axis=1)  # llm:
+    dilated = ndi.grey_dilation(bigger, size=(2, 2, 2))
+    eroded = sp.ndimage.binary_erosion(dilated)
+
+    frames.append(eroded)
     print(f"frames {i} rendered")
 
 import sys
