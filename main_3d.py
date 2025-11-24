@@ -4,7 +4,7 @@ import random as r
 import scipy as sp
 from scipy import ndimage as ndi
 from scipy.ndimage import gaussian_filter
-import sys
+import neurovolume as nv
 
 # _: SETUP:
 sx = 100
@@ -13,9 +13,9 @@ sz = 100
 scale = 3
 fps = 24
 rt = 6  # runtime in seconds
-render_start = 1  # in seconds
+render_start = 4  # in seconds
 decay = 0.90
-num_particles = 200
+num_particles = 100
 dl = 4  # dilation
 blur = 1
 
@@ -255,11 +255,6 @@ def spawn_random():
 spawn_random()
 print("spawned")
 # # time steps
-nv_path = "/Users/joachimpfefferkorn/repos/neurovolume/neurovolume/src"
-if nv_path not in sys.path:  # LLM:
-    sys.path.insert(0, nv_path)
-# VERSION: https://github.com/joachimbbp/neurovolume/tree/59a576bafa2dd9035a08a6c2be40c206c9d53d55
-import neurovolume as nv
 
 affine_identity = np.array(
     [  # LLM:
