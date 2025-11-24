@@ -4,6 +4,8 @@
 
 ![slime, way too big gif, I know](readme_media/physarum_20251113T182154.gif)
 ![very low res slime in 3D](readme_media/slime_3d.gif)
+
+
 Implementing [the slime mold outlined here](https://bleuje.com/physarum-explanation/)
 
 - eventually in arbitrarily large dimensions
